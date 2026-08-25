@@ -72,6 +72,23 @@ pub struct Escrow {
 // These match the actual contract implementations
 
 // ============================================================
+// Campaign Creation Arguments
+// ============================================================
+
+#[contracttype]
+#[derive(Clone)]
+pub struct CampaignCreateArgs {
+    pub advertiser: Address,
+    pub campaign_type: u32,
+    pub budget: i128,
+    pub cost_per_view: i128,
+    pub duration: u32,
+    pub target_views: u64,
+    pub daily_view_limit: u64,
+    pub refundable: bool,
+}
+
+// ============================================================
 // Data Types
 // ============================================================
 
@@ -283,41 +300,31 @@ impl CampaignOrchestratorContract {
     }
 
     /// Create a new ad campaign
-    pub fn create_campaign(
-        env: Env,
-        advertiser: Address,
-        campaign_type: u32,
-        budget: i128,
-        cost_per_view: i128,
-        duration: u32,
-        target_views: u64,
-        daily_view_limit: u64,
-        refundable: bool,
-    ) -> u64 {
+    pub fn create_campaign(env: Env, args: CampaignCreateArgs) -> u64 {
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
-        advertiser.require_auth();
+        args.advertiser.require_auth();
 
         let campaign_type_data: CampaignType = env
             .storage()
             .instance()
-            .get(&DataKey::CampaignType(campaign_type))
+            .get(&DataKey::CampaignType(args.campaign_type))
             .expect("campaign type not found");
 
-        if budget < campaign_type_data.min_budget {
+        if args.budget < campaign_type_data.min_budget {
             panic!("budget too low");
         }
-        if duration < campaign_type_data.min_duration || duration > campaign_type_data.max_duration
+        if args.duration < campaign_type_data.min_duration || args.duration > campaign_type_data.max_duration
         {
             panic!("invalid duration");
         }
 
         // Validate daily_view_limit and cost_per_view
-        if daily_view_limit == 0 {
+        if args.daily_view_limit == 0 {
             panic!("daily_view_limit must be at least 1");
         }
-        if cost_per_view <= 0 {
+        if args.cost_per_view <= 0 {
             panic!("cost_per_view must be positive");
         }
 
@@ -333,7 +340,7 @@ impl CampaignOrchestratorContract {
             .instance()
             .get(&DataKey::PlatformFeePct)
             .unwrap_or(2);
-        let platform_fee = (budget * platform_fee_pct as i128) / 100;
+        let platform_fee = (args.budget * platform_fee_pct as i128) / 100;
         if platform_fee <= 0 {
             panic!("invalid platform fee");
         }
@@ -346,27 +353,27 @@ impl CampaignOrchestratorContract {
             .unwrap();
         let token_client = token::Client::new(&env, &token_addr);
         token_client.transfer(
-            &advertiser,
+            &args.advertiser,
             &env.current_contract_address(),
-            &(budget + platform_fee),
+            &(args.budget + platform_fee),
         );
 
         let start_ledger = env.ledger().sequence();
-        let end_ledger = start_ledger + duration;
+        let end_ledger = start_ledger + args.duration;
 
         let campaign = Campaign {
-            advertiser: advertiser.clone(),
-            campaign_type,
-            budget,
-            remaining_budget: budget,
-            cost_per_view,
+            advertiser: args.advertiser.clone(),
+            campaign_type: args.campaign_type,
+            budget: args.budget,
+            remaining_budget: args.budget,
+            cost_per_view: args.cost_per_view,
             start_ledger,
             end_ledger,
             status: CampaignStatus::Active,
-            target_views,
+            target_views: args.target_views,
             current_views: 0,
-            daily_view_limit,
-            refundable,
+            daily_view_limit: args.daily_view_limit,
+            refundable: args.refundable,
             platform_fee,
             created_at: env.ledger().timestamp(),
             last_updated: env.ledger().timestamp(),
@@ -393,11 +400,11 @@ impl CampaignOrchestratorContract {
             .set(&DataKey::TotalPlatformFees, &(total_fees + platform_fee));
 
         // Update advertiser stats
-        Self::_update_advertiser_stats(&env, &advertiser, campaign_id, budget);
+        Self::_update_advertiser_stats(&env, &args.advertiser, campaign_id, args.budget);
 
         env.events().publish(
             (symbol_short!("campaign"), symbol_short!("created")),
-            (campaign_id, advertiser, budget),
+            (campaign_id, args.advertiser, args.budget),
         );
 
         campaign_id
