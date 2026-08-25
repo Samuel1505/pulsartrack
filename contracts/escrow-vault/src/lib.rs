@@ -11,6 +11,23 @@
 use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, token, Address, Env, Vec};
 
 // ============================================================
+// Creation Arguments
+// ============================================================
+
+#[contracttype]
+#[derive(Clone)]
+pub struct EscrowCreateArgs {
+    pub depositor: Address,
+    pub campaign_id: u64,
+    pub beneficiary: Address,
+    pub amount: i128,
+    pub time_lock_duration: u64,
+    pub performance_threshold: u32,
+    pub expires_in: u64,
+    pub required_approvers: Vec<Address>,
+}
+
+// ============================================================
 // Data Types
 // ============================================================
 
@@ -180,32 +197,22 @@ impl EscrowVaultContract {
     }
 
     /// Create a new escrow
-    pub fn create_escrow(
-        env: Env,
-        depositor: Address,
-        campaign_id: u64,
-        beneficiary: Address,
-        amount: i128,
-        time_lock_duration: u64,
-        performance_threshold: u32,
-        expires_in: u64,
-        required_approvers: Vec<Address>,
-    ) -> u64 {
+    pub fn create_escrow(env: Env, args: EscrowCreateArgs) -> u64 {
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
-        depositor.require_auth();
+        args.depositor.require_auth();
 
-        if amount <= 0 {
+        if args.amount <= 0 {
             panic!("invalid amount");
         }
-        if performance_threshold > 100 {
+        if args.performance_threshold > 100 {
             panic!("invalid performance threshold");
         }
-        if time_lock_duration == 0 {
+        if args.time_lock_duration == 0 {
             panic!("time_lock_duration must be at least 1 second");
         }
-        if expires_in <= time_lock_duration {
+        if args.expires_in <= args.time_lock_duration {
             panic!("expires_in must be greater than time_lock_duration");
         }
 
@@ -214,7 +221,7 @@ impl EscrowVaultContract {
             .instance()
             .get(&DataKey::MinApprovalThreshold)
             .unwrap_or(1);
-        if required_approvers.len() < min_threshold {
+        if args.required_approvers.len() < min_threshold {
             panic!("not enough approvers for required threshold");
         }
 
@@ -227,22 +234,22 @@ impl EscrowVaultContract {
 
         let now = env.ledger().timestamp();
         let escrow = Escrow {
-            campaign_id,
-            depositor: depositor.clone(),
-            beneficiary,
-            amount,
-            locked_amount: amount,
+            campaign_id: args.campaign_id,
+            depositor: args.depositor.clone(),
+            beneficiary: args.beneficiary,
+            amount: args.amount,
+            locked_amount: args.amount,
             released_amount: 0,
             refunded_amount: 0,
             state: EscrowState::Locked,
             time_lock_until: now
-                .checked_add(time_lock_duration)
+                .checked_add(args.time_lock_duration)
                 .expect("time_lock_until overflow"),
-            performance_threshold,
+            performance_threshold: args.performance_threshold,
             created_at: now,
             locked_at: Some(now),
             released_at: None,
-            expires_at: now.checked_add(expires_in).expect("expires_at overflow"),
+            expires_at: now.checked_add(args.expires_in).expect("expires_at overflow"),
         };
 
         let _ttl_key = DataKey::Escrow(escrow_id);
@@ -261,7 +268,7 @@ impl EscrowVaultContract {
         );
 
         // Register required approvers
-        for approver in required_approvers.iter() {
+        for approver in args.required_approvers.iter() {
             let _ttl_key = DataKey::RequiredApprover(escrow_id, approver.clone());
             env.storage().persistent().set(&_ttl_key, &true);
             env.storage().persistent().extend_ttl(
@@ -271,7 +278,7 @@ impl EscrowVaultContract {
             );
         }
 
-        let required_count = required_approvers.len();
+        let required_count = args.required_approvers.len();
         let _ttl_key = DataKey::RequiredApproverCount(escrow_id);
         env.storage().persistent().set(&_ttl_key, &required_count);
         env.storage().persistent().extend_ttl(
@@ -291,11 +298,11 @@ impl EscrowVaultContract {
             .get(&DataKey::TokenAddress)
             .unwrap();
         let token_client = token::Client::new(&env, &token_addr);
-        token_client.transfer(&depositor, &env.current_contract_address(), &amount);
+        token_client.transfer(&args.depositor, &env.current_contract_address(), &args.amount);
 
         env.events().publish(
             (symbol_short!("escrow"), symbol_short!("created")),
-            (escrow_id, campaign_id, amount),
+            (escrow_id, args.campaign_id, args.amount),
         );
 
         escrow_id
