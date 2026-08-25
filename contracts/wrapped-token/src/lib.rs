@@ -19,6 +19,17 @@ pub struct WrappedToken {
 
 #[contracttype]
 #[derive(Clone)]
+pub struct RegisterTokenParams {
+    pub symbol: String,
+    pub name: String,
+    pub decimals: u32,
+    pub underlying_chain: String,
+    pub underlying_address: String,
+    pub stellar_token: Address,
+}
+
+#[contracttype]
+#[derive(Clone)]
 pub struct WrapRecord {
     pub record_id: u64,
     pub user: Address,
@@ -72,16 +83,7 @@ impl WrappedTokenContract {
             .set(&DataKey::WrapRecordCounter, &0u64);
     }
 
-    pub fn register_wrapped_token(
-        env: Env,
-        admin: Address,
-        symbol: String,
-        name: String,
-        decimals: u32,
-        underlying_chain: String,
-        underlying_address: String,
-        stellar_token: Address,
-    ) {
+    pub fn register_wrapped_token(env: Env, admin: Address, params: RegisterTokenParams) {
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
@@ -92,17 +94,17 @@ impl WrappedTokenContract {
         }
 
         let wrapped = WrappedToken {
-            symbol: symbol.clone(),
-            name,
-            decimals,
-            underlying_chain,
-            underlying_address,
-            stellar_token,
+            symbol: params.symbol.clone(),
+            name: params.name,
+            decimals: params.decimals,
+            underlying_chain: params.underlying_chain,
+            underlying_address: params.underlying_address,
+            stellar_token: params.stellar_token,
             total_wrapped: 0,
             is_active: true,
         };
 
-        let _ttl_key = DataKey::WrappedToken(symbol);
+        let _ttl_key = DataKey::WrappedToken(params.symbol);
         env.storage().persistent().set(&_ttl_key, &wrapped);
         env.storage().persistent().extend_ttl(
             &_ttl_key,

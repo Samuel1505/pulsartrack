@@ -60,12 +60,14 @@ fn test_register_wrapped_token() {
     let stellar_token = deploy_stellar_token(&env, &c.address);
     c.register_wrapped_token(
         &admin,
-        &s(&env, "wETH"),
-        &s(&env, "Wrapped Ether"),
-        &8u32,
-        &s(&env, "ethereum"),
-        &s(&env, "0xAddr"),
-        &stellar_token,
+        &RegisterTokenParams {
+            symbol: s(&env, "wETH"),
+            name: s(&env, "Wrapped Ether"),
+            decimals: 8u32,
+            underlying_chain: s(&env, "ethereum"),
+            underlying_address: s(&env, "0xAddr"),
+            stellar_token: stellar_token.clone(),
+        },
     );
     let token = c.get_wrapped_token(&s(&env, "wETH")).unwrap();
     assert_eq!(token.decimals, 8);
@@ -80,12 +82,14 @@ fn test_mint_wrapped() {
     let stellar_token = deploy_stellar_token(&env, &c.address);
     c.register_wrapped_token(
         &admin,
-        &s(&env, "wETH"),
-        &s(&env, "Wrapped Ether"),
-        &8u32,
-        &s(&env, "ethereum"),
-        &s(&env, "0xAddr"),
-        &stellar_token,
+        &RegisterTokenParams {
+            symbol: s(&env, "wETH"),
+            name: s(&env, "Wrapped Ether"),
+            decimals: 8u32,
+            underlying_chain: s(&env, "ethereum"),
+            underlying_address: s(&env, "0xAddr"),
+            stellar_token: stellar_token.clone(),
+        },
     );
     c.mint_wrapped(
         &relayer,
@@ -107,12 +111,14 @@ fn test_burn_wrapped() {
     let stellar_token = deploy_stellar_token(&env, &c.address);
     c.register_wrapped_token(
         &admin,
-        &s(&env, "wETH"),
-        &s(&env, "Wrapped Ether"),
-        &8u32,
-        &s(&env, "ethereum"),
-        &s(&env, "0xAddr"),
-        &stellar_token,
+        &RegisterTokenParams {
+            symbol: s(&env, "wETH"),
+            name: s(&env, "Wrapped Ether"),
+            decimals: 8u32,
+            underlying_chain: s(&env, "ethereum"),
+            underlying_address: s(&env, "0xAddr"),
+            stellar_token: stellar_token.clone(),
+        },
     );
     c.mint_wrapped(
         &relayer,
@@ -142,12 +148,14 @@ fn test_set_relayer_rotates_mint_authority() {
 
     c.register_wrapped_token(
         &admin,
-        &s(&env, "wETH"),
-        &s(&env, "Wrapped Ether"),
-        &8u32,
-        &s(&env, "ethereum"),
-        &s(&env, "0xAddr"),
-        &stellar_token,
+        &RegisterTokenParams {
+            symbol: s(&env, "wETH"),
+            name: s(&env, "Wrapped Ether"),
+            decimals: 8u32,
+            underlying_chain: s(&env, "ethereum"),
+            underlying_address: s(&env, "0xAddr"),
+            stellar_token: stellar_token.clone(),
+        },
     );
     c.set_relayer(&admin, &new_relayer);
     c.mint_wrapped(
@@ -173,12 +181,14 @@ fn test_old_relayer_after_rotation_fails() {
 
     c.register_wrapped_token(
         &admin,
-        &s(&env, "wETH"),
-        &s(&env, "Wrapped Ether"),
-        &8u32,
-        &s(&env, "ethereum"),
-        &s(&env, "0xAddr"),
-        &stellar_token,
+        &RegisterTokenParams {
+            symbol: s(&env, "wETH"),
+            name: s(&env, "Wrapped Ether"),
+            decimals: 8u32,
+            underlying_chain: s(&env, "ethereum"),
+            underlying_address: s(&env, "0xAddr"),
+            stellar_token: stellar_token.clone(),
+        },
     );
     c.set_relayer(&admin, &new_relayer);
     c.mint_wrapped(
@@ -213,12 +223,14 @@ fn test_mint_wrapped_paused_fails() {
 
     c.register_wrapped_token(
         &admin,
-        &s(&env, "wETH"),
-        &s(&env, "Wrapped Ether"),
-        &8u32,
-        &s(&env, "ethereum"),
-        &s(&env, "0xAddr"),
-        &stellar_token,
+        &RegisterTokenParams {
+            symbol: s(&env, "wETH"),
+            name: s(&env, "Wrapped Ether"),
+            decimals: 8u32,
+            underlying_chain: s(&env, "ethereum"),
+            underlying_address: s(&env, "0xAddr"),
+            stellar_token: stellar_token.clone(),
+        },
     );
     c.set_minting_paused(&admin, &true);
     c.mint_wrapped(
@@ -251,12 +263,14 @@ fn test_mint_wrapped_after_unpause_succeeds() {
 
     c.register_wrapped_token(
         &admin,
-        &s(&env, "wETH"),
-        &s(&env, "Wrapped Ether"),
-        &8u32,
-        &s(&env, "ethereum"),
-        &s(&env, "0xAddr"),
-        &stellar_token,
+        &RegisterTokenParams {
+            symbol: s(&env, "wETH"),
+            name: s(&env, "Wrapped Ether"),
+            decimals: 8u32,
+            underlying_chain: s(&env, "ethereum"),
+            underlying_address: s(&env, "0xAddr"),
+            stellar_token: stellar_token.clone(),
+        },
     );
     c.set_minting_paused(&admin, &true);
     c.set_minting_paused(&admin, &false);
@@ -302,12 +316,14 @@ fn test_mint_wrapped_replay_attack_fails() {
 
     c.register_wrapped_token(
         &admin,
-        &s(&env, "wETH"),
-        &s(&env, "Wrapped Ether"),
-        &8u32,
-        &s(&env, "ethereum"),
-        &s(&env, "0xAddr"),
-        &stellar_token,
+        &RegisterTokenParams {
+            symbol: s(&env, "wETH"),
+            name: s(&env, "Wrapped Ether"),
+            decimals: 8u32,
+            underlying_chain: s(&env, "ethereum"),
+            underlying_address: s(&env, "0xAddr"),
+            stellar_token: stellar_token.clone(),
+        },
     );
 
     c.mint_wrapped(
@@ -336,12 +352,14 @@ fn test_mint_wrapped_different_tx_succeeds() {
 
     c.register_wrapped_token(
         &admin,
-        &s(&env, "wETH"),
-        &s(&env, "Wrapped Ether"),
-        &8u32,
-        &s(&env, "ethereum"),
-        &s(&env, "0xAddr"),
-        &stellar_token,
+        &RegisterTokenParams {
+            symbol: s(&env, "wETH"),
+            name: s(&env, "Wrapped Ether"),
+            decimals: 8u32,
+            underlying_chain: s(&env, "ethereum"),
+            underlying_address: s(&env, "0xAddr"),
+            stellar_token: stellar_token.clone(),
+        },
     );
 
     c.mint_wrapped(
@@ -374,12 +392,14 @@ fn test_mint_wrapped_replay_different_recipient_fails() {
 
     c.register_wrapped_token(
         &admin,
-        &s(&env, "wETH"),
-        &s(&env, "Wrapped Ether"),
-        &8u32,
-        &s(&env, "ethereum"),
-        &s(&env, "0xAddr"),
-        &stellar_token,
+        &RegisterTokenParams {
+            symbol: s(&env, "wETH"),
+            name: s(&env, "Wrapped Ether"),
+            decimals: 8u32,
+            underlying_chain: s(&env, "ethereum"),
+            underlying_address: s(&env, "0xAddr"),
+            stellar_token: stellar_token.clone(),
+        },
     );
 
     c.mint_wrapped(&relayer, &s(&env, "wETH"), &user1, &1_000_000i128, &s(&env, "0xTxHash789"));
@@ -397,12 +417,14 @@ fn test_mint_wrapped_replay_different_amount_fails() {
 
     c.register_wrapped_token(
         &admin,
-        &s(&env, "wETH"),
-        &s(&env, "Wrapped Ether"),
-        &8u32,
-        &s(&env, "ethereum"),
-        &s(&env, "0xAddr"),
-        &stellar_token,
+        &RegisterTokenParams {
+            symbol: s(&env, "wETH"),
+            name: s(&env, "Wrapped Ether"),
+            decimals: 8u32,
+            underlying_chain: s(&env, "ethereum"),
+            underlying_address: s(&env, "0xAddr"),
+            stellar_token: stellar_token.clone(),
+        },
     );
 
     c.mint_wrapped(&relayer, &s(&env, "wETH"), &user, &1_000_000i128, &s(&env, "0xTxHashABC"));
