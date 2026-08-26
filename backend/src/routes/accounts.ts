@@ -1,23 +1,20 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import { Keypair } from '@stellar/stellar-sdk';
+import { Router, Request, Response } from 'express';
 import {
   getAccountDetails,
   getAccountTransactions,
 } from '../services/horizon';
+import { validate } from '../middleware/validate';
 
 const router = Router();
 
-function validateAddress(req: Request, res: Response, next: NextFunction): void {
-  try {
-    Keypair.fromPublicKey(req.params.address as string);
-    next();
-  } catch {
-    res.status(400).json({ error: 'Invalid Stellar address' });
-  }
-}
+const addressParamValidation = validate({
+  params: {
+    address: { type: 'stellar_address', required: true },
+  },
+});
 
 // GET /api/account/:address
-router.get('/:address', validateAddress, async (req: Request, res: Response) => {
+router.get('/:address', addressParamValidation, async (req: Request, res: Response) => {
   try {
     const address = req.params.address as string;
     const account = await getAccountDetails(address);
@@ -37,7 +34,7 @@ router.get('/:address', validateAddress, async (req: Request, res: Response) => 
 });
 
 // GET /api/account/:address/transactions
-router.get('/:address/transactions', validateAddress, async (req: Request, res: Response) => {
+router.get('/:address/transactions', addressParamValidation, async (req: Request, res: Response) => {
   try {
     const address = req.params.address as string;
     const parsed = parseInt(req.query.limit as string);
@@ -62,7 +59,13 @@ router.get('/:address/transactions', validateAddress, async (req: Request, res: 
       order,
     });
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    const response: Record<string, string> = {
+      error: 'Failed to fetch transactions',
+    };
+    if (process.env.NODE_ENV === 'development') {
+      response.details = err.message;
+    }
+    res.status(500).json(response);
   }
 });
 
