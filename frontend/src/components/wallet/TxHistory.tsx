@@ -128,7 +128,7 @@ export function TxHistory({ isOpen, onClose }: TxHistoryProps) {
             <button
               onClick={onClose}
               className="rounded-lg p-2 hover:bg-gray-100 transition-colors"
-              aria-label="Close"
+              aria-label="Close transaction history"
             >
               <X className="w-5 h-5 text-gray-500" />
             </button>

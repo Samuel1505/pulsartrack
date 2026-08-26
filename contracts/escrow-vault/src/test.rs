@@ -1058,3 +1058,27 @@ fn test_accept_admin_unauthorized() {
     c.propose_admin(&admin, &new_admin);
     c.accept_admin(&stranger);
 }
+
+// ─── set_dispute_contract ────────────────────────────────────────────────────
+
+#[test]
+fn test_set_dispute_contract() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (c, admin, _, _) = setup(&env);
+    let dispute_addr = Address::generate(&env);
+
+    c.set_dispute_contract(&admin, &dispute_addr);
+}
+
+#[test]
+#[should_panic(expected = "unauthorized")]
+fn test_set_dispute_contract_unauthorized() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (c, _, _, _) = setup(&env);
+    let stranger = Address::generate(&env);
+    let dispute_addr = Address::generate(&env);
+
+    c.set_dispute_contract(&stranger, &dispute_addr);
+}

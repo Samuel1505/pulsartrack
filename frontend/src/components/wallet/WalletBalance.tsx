@@ -11,12 +11,12 @@ export function WalletBalance() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchBalance = useCallback(async () => {
+  const fetchBalance = useCallback(async (signal?: AbortSignal) => {
     if (!address) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${getHorizonUrl()}/accounts/${address}`);
+      const res = await fetch(`${getHorizonUrl()}/accounts/${address}`, { signal });
       if (res.status === 404) {
         setXlmBalance('0.00');
         setError('Account not funded');
@@ -26,7 +26,8 @@ export function WalletBalance() {
       const data: { balances?: Array<{ asset_type: string; balance: string }> } = await res.json();
       const xlm = data.balances?.find((b) => b.asset_type === 'native');
       setXlmBalance(xlm ? parseFloat(xlm.balance).toFixed(2) : '0.00');
-    } catch {
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') return;
       setXlmBalance(null);
       setError('Failed to load balance');
     } finally {
@@ -36,7 +37,9 @@ export function WalletBalance() {
 
   useEffect(() => {
     if (isConnected && address) {
-      fetchBalance();
+      const controller = new AbortController();
+      fetchBalance(controller.signal);
+      return () => controller.abort();
     }
   }, [isConnected, address, fetchBalance]);
 
@@ -54,8 +57,9 @@ export function WalletBalance() {
         )}
       </div>
       <button
-        onClick={fetchBalance}
+        onClick={() => fetchBalance()}
         className="p-0.5 hover:text-blue-600 transition-colors"
+        aria-label="Refresh balance"
         title="Refresh balance"
       >
         <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />

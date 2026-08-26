@@ -578,3 +578,27 @@ fn test_get_dispute_count_initial() {
 
     assert_eq!(client.get_dispute_count(), 0);
 }
+
+// ─── set_escrow_contract ─────────────────────────────────────────────────────
+
+#[test]
+fn test_set_escrow_contract() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, admin, _, _) = setup(&env);
+    let escrow_addr = Address::generate(&env);
+
+    client.set_escrow_contract(&admin, &escrow_addr);
+}
+
+#[test]
+#[should_panic(expected = "unauthorized")]
+fn test_set_escrow_contract_unauthorized() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _, _, _) = setup(&env);
+    let stranger = Address::generate(&env);
+    let escrow_addr = Address::generate(&env);
+
+    client.set_escrow_contract(&stranger, &escrow_addr);
+}
