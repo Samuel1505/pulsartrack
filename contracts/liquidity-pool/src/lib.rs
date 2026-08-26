@@ -3,6 +3,7 @@
 
 #![no_std]
 use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, token, Address, Env};
+use pulsar_common_fees::calculate_fee_bps;
 
 #[contracttype]
 #[derive(Clone)]
@@ -264,7 +265,7 @@ impl LiquidityPoolContract {
             panic!("insufficient liquidity");
         }
 
-        let max_borrow = (pool.total_liquidity * MAX_BORROW_FRACTION_BPS as i128) / 10_000;
+        let max_borrow = calculate_fee_bps(pool.total_liquidity, MAX_BORROW_FRACTION_BPS);
         if amount > max_borrow {
             panic!("borrow exceeds per-transaction limit");
         }

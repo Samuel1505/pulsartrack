@@ -5,6 +5,7 @@
 use soroban_sdk::{
     contract, contractimpl, contracttype, symbol_short, token, Address, Env, String,
 };
+use pulsar_common_fees::calculate_fee_bps;
 
 #[contracttype]
 #[derive(Clone, PartialEq)]
@@ -211,7 +212,7 @@ impl CreativeMarketplaceContract {
             .instance()
             .get(&DataKey::PlatformFeeBps)
             .unwrap_or(250);
-        let fee = (listing.price * fee_bps as i128) / 10_000;
+        let fee = calculate_fee_bps(listing.price, fee_bps);
         let creator_amount = listing.price - fee;
 
         let token_addr: Address = env
