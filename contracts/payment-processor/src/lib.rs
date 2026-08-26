@@ -3,6 +3,7 @@
 
 #![no_std]
 use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, token, Address, Env};
+use pulsar_common_fees::{calculate_fee_bps, checked_add};
 
 // ============================================================
 // Data Types
@@ -196,7 +197,8 @@ impl PaymentProcessorContract {
         let daily_key = DataKey::DailyVolume(token.clone(), current_day);
         let daily_vol: i128 = env.storage().temporary().get(&daily_key).unwrap_or(0);
 
-        if daily_vol + amount > config.daily_limit {
+        let new_daily_vol = checked_add(daily_vol, amount);
+        if new_daily_vol > config.daily_limit {
             panic!("daily limit exceeded");
         }
 
@@ -206,7 +208,7 @@ impl PaymentProcessorContract {
             .instance()
             .get(&DataKey::PlatformFeeBps)
             .unwrap_or(250);
-        let fee = (amount * fee_bps as i128) / 10_000;
+        let fee = calculate_fee_bps(amount, fee_bps);
         let net_amount = amount - fee;
 
         let payment_id: u64 = env
@@ -278,7 +280,7 @@ impl PaymentProcessorContract {
         // Update daily volume
         env.storage()
             .temporary()
-            .set(&daily_key, &(daily_vol + amount));
+            .set(&daily_key, &new_daily_vol);
         let remaining_ledgers = Self::daily_volume_ttl_ledgers(&env);
         env.storage()
             .temporary()
