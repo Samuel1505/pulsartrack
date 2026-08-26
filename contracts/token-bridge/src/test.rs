@@ -139,3 +139,27 @@ fn test_deposit_for_bridge_normal() {
     assert_eq!(deposit.amount, 9950);
     assert_eq!(deposit.bridge_fee, 50);
 }
+
+#[test]
+#[should_panic(expected = "daily transfer limit exceeded for chain")]
+fn test_daily_limit_enforced() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (c, admin) = setup(&env);
+
+    let token_admin = Address::generate(&env);
+    let token_id = env.register_stellar_asset_contract(token_admin);
+
+    let chain = s(&env, "ethereum");
+    c.add_supported_chain(&admin, &chain, &100i128);
+
+    let sender = Address::generate(&env);
+    let token_stellar_client = token::StellarAssetClient::new(&env, &token_id);
+    token_stellar_client.mint(&sender, &200i128);
+
+    // First deposit uses 80 (within limit of 100)
+    c.deposit_for_bridge(&sender, &token_id, &80i128, &chain, &s(&env, "0x1"));
+
+    // Second deposit of 30 would push total to 110, exceeding limit
+    c.deposit_for_bridge(&sender, &token_id, &30i128, &chain, &s(&env, "0x2"));
+}

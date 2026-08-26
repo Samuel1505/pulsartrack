@@ -129,7 +129,10 @@ impl TokenBridgeContract {
             .get(&daily_volume_key)
             .unwrap_or(0);
 
-        if current_daily_volume + amount > max_daily_limit {
+        let new_daily_volume = current_daily_volume
+            .checked_add(amount)
+            .expect("daily volume overflow");
+        if new_daily_volume > max_daily_limit {
             panic!("daily transfer limit exceeded for chain");
         }
 
@@ -166,7 +169,6 @@ impl TokenBridgeContract {
             tx_hash: None,
         };
 
-        let new_daily_volume = current_daily_volume + amount;
         env.storage()
             .persistent()
             .set(&daily_volume_key, &new_daily_volume);
