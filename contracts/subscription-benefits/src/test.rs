@@ -83,3 +83,35 @@ fn test_get_benefit_nonexistent() {
     let (c, _) = setup(&env);
     assert!(c.get_benefit(&999u32).is_none());
 }
+
+// ── update_subscriber_tier tests (#785) ─────────────────────────────────────
+
+#[test]
+fn test_update_subscriber_tier() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (c, admin) = setup(&env);
+    let sub = Address::generate(&env);
+    let bid = c.add_benefit(&admin, &s(&env, "Premium"), &s(&env, "Access"), &2u32);
+
+    // Initially tier 0 — no access to tier-2 benefit
+    assert!(!c.check_benefit_access(&sub, &bid, &0u32));
+
+    // Upgrade to tier 2
+    c.update_subscriber_tier(&admin, &sub, &2u32);
+    assert!(c.check_benefit_access(&sub, &bid, &0u32));
+
+    // Downgrade to tier 1 — loses access
+    c.update_subscriber_tier(&admin, &sub, &1u32);
+    assert!(!c.check_benefit_access(&sub, &bid, &0u32));
+}
+
+#[test]
+#[should_panic(expected = "unauthorized")]
+fn test_update_subscriber_tier_unauthorized() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (c, _) = setup(&env);
+    let sub = Address::generate(&env);
+    c.update_subscriber_tier(&Address::generate(&env), &sub, &2u32);
+}
